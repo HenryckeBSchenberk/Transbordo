@@ -1,12 +1,5 @@
-import threading
 import numpy as np
-import os
-from concurrent.futures import ThreadPoolExecutor
 import argparse
-from keras.models import (
-        load_model
-)
-
 import importlib
 from cv2 import (
     imread,
@@ -26,13 +19,6 @@ from uitls import (
     draw_ok_nok
 )
     
-class ModelWorker:
-    def __init__(self, model):
-        self.model = model
-
-    def predict(self, frames):
-        return self.model.predict(np.array(frames))
-
 class frame:
     def __init__(self, frame_orignal, frame_validation, roi, **kwargs) -> None:
         self.frame_original = frame_orignal
@@ -57,72 +43,6 @@ class frame:
     def __repr__(self) -> str:
         return self.__str__()
 
-class Validator:
-    def __init__(self, name, models_and_weights, max_workers=4):
-        self.name = name
-        self.models = []
-        self.weights = []
-        self.results = []
-        self.lock = threading.Lock()
-        self.thread_pool = ThreadPoolExecutor(max_workers=max_workers)
-        self.workers = [ModelWorker(model) for model, _ in models_and_weights]
-
-        for model, weight in models_and_weights:
-            self.models.append(model)
-            self.weights.append(weight)
-
-    def _worker_predict(self, model, frames):
-        return model.predict(frames)
-
-    def test(self, frames):
-        futures = []
-        self.results = []  # Reset results for each test
-
-        for worker in self.workers:
-            future = self.thread_pool.submit(self._worker_predict, worker, frames)
-            futures.append(future)
-
-        for future in futures:
-            result = future.result()
-            self.results.append(result)
-
-        # Perform voting based on weights
-        final_result = np.zeros_like(self.results[0])
-
-        for i, result in enumerate(self.results):
-            final_result += result * self.weights[i]
-
-        final_result /= np.sum(self.weights)  # Normalize by sum of weights
-
-        return final_result.round().astype(float)  # Round to get bina
-
-def extract_info_from_filename(filename):
-    parts = filename.split('-')
-    epoch = int(parts[1])
-    loss = float(parts[2])
-    accuracy = float(parts[3].split('.h5')[0])  # Remove '.h5' extension and convert to float
-    return epoch, loss, accuracy
-
-def get_best_models(directory, top_n=3):
-    models_info = []
-
-    # Percorre recursivamente os arquivos na pasta 'directory'
-    for root, dirs, files in os.walk(directory):
-        for filename in files:
-            if filename.endswith(".h5"):
-                filepath = os.path.join(root, filename)
-                epoch, loss, accuracy = extract_info_from_filename(filename)
-                models_info.append((filepath, epoch, loss, accuracy))
-                
-
-    # Ordena os modelos com base no loss e precisão
-    sorted_models = sorted(models_info, key=lambda x: (x[2], x[3]))
-
-    # Pega os 'top_n' melhores modelos
-    top_models = (load_model(model[0]) for model in sorted_models[:top_n])
-    print(sorted_models[:top_n])
-    return top_models
-
 def perform_validation(frames, frame_info, thr_function, validator):
     result = validator.test(frames)
     new_frames, new_frame_info = [
@@ -131,21 +51,21 @@ def perform_validation(frames, frame_info, thr_function, validator):
 
     return new_frames, new_frame_info
 
-def perform_steps(frames, frame_info, steps):
-    keys = list(steps.keys())
-    if len(keys)>0:
-        step = steps.pop(keys.pop(0))
+def perform_steps(frames, frame_info, steps, keys=False):
+    if keys != []:
+        keys = keys or list(steps.keys())
+        step = steps[keys.pop(0)]
         thf = step['threshold']
         validator = step['validator']
         nf, ni = perform_validation(frames, frame_info, thf, validator)
-        return perform_steps(nf, ni, steps)
+        return perform_steps(nf, ni, steps, keys)
 
 def insertFrames(rois, frames, image):
     for (x, y, w, h), frame in zip(rois, frames):
         image[y:y+h, x:x+w] =  frame
 
 
-def validate(_frame, _steps, _roi, _show):
+def validate(_frame, _steps, _roi, _show=False):
     if _frame is not None:
 
         img = _frame
@@ -191,12 +111,15 @@ def validate(_frame, _steps, _roi, _show):
             if _show:
                 plt.imshow(np.zeros(i.shape, dtype=np.uint8), cmap='gray')
 
-        if _show:
-            plt.show()
+        # if _show:
+        #     plt.show()
 
         return frame_info, original
 
     raise AttributeError('An image/frame should be provided to this function analise')
+
+_default_rois = lambda: loadRois('./rois')
+_default_steps = lambda: importlib.import_module('validators').steps
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Process images and ROIs.')
@@ -209,12 +132,6 @@ if __name__ == "__main__":
     _frame = imread(args.path)
     _rois = loadRois(args.roi)
 
-    vd = importlib.import_module(args.models)
-    steps = vd.steps
+    steps = importlib.import_module(args.models).steps
 
-    for step_name, step in steps.items():
-        models = get_best_models(step['validator'], top_n=1)
-        model_and_weight = list(zip(models, [0.5, 0.3, 0.2]))
-        step['validator'] = Validator(step_name, model_and_weight)
-
-    validate(_frame=_frame, _roi=_rois, _show=args.show, _steps=steps)
+    validate(_frame=_frame, _roi=_rois, _show=args.show, _steps=steps.copy())
