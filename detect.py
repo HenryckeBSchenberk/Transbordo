@@ -199,6 +199,7 @@ def validate(_frame, _steps, _roi, _show):
     raise AttributeError('An image/frame should be provided to this function analise')
 
 if __name__ == "__main__":
+    from uitls import calculate_roi_coordinates
     parser = argparse.ArgumentParser(description='Process images and ROIs.')
     parser.add_argument('-P', '--path', type=str, help='Path for image raw image')
     parser.add_argument('-R', '--roi', type=str, help="Path for 'roi' file", default='./rois')
@@ -209,12 +210,13 @@ if __name__ == "__main__":
     _frame = imread(args.path)
     _rois = loadRois(args.roi)
 
-    vd = importlib.import_module(args.models)
-    steps = vd.steps
+    steps = importlib.import_module(args.models).steps
+    # steps = vd.steps
 
-    for step_name, step in steps.items():
-        models = get_best_models(step['validator'], top_n=1)
-        model_and_weight = list(zip(models, [0.5, 0.3, 0.2]))
-        step['validator'] = Validator(step_name, model_and_weight)
+    # for step_name, step in steps.items():
+    #     models = get_best_models(step['validator'], top_n=1)
+    #     model_and_weight = list(zip(models, [0.5, 0.3, 0.2]))
+    #     step['validator'] = Validator(step_name, model_and_weight)
+    _rois = calculate_roi_coordinates((68, 104, 1359, 913), (5,20))
 
     validate(_frame=_frame, _roi=_rois, _show=args.show, _steps=steps)

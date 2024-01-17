@@ -1,9 +1,10 @@
+import sys
 from os.path import exists, join
 from os import listdir
 from cv2 import selectROIs, destroyAllWindows, imread, imwrite, COLOR_BGR2GRAY, IMREAD_GRAYSCALE, cvtColor, resize, imwrite
 
 from pickle import load, dump
-from numpy import unique
+from numpy import unique, append, array
 
 from uuid import uuid1 as _id
 
@@ -50,17 +51,17 @@ def normalizeData(frames, target_size=(128,128), gray=False):
     return [resize(frame, target_size) for frame in frames]
     
 
-def main():
+def main(args):
     parser = argparse.ArgumentParser(description='Process images and ROIs.')
     parser.add_argument('-CR', '--CreateRois', type=str, help='Create ROIs for an image')
-    parser.add_argument('-AR', '--ApplyRois', type=str, help='Apply ROIs to an image')
+    parser.add_argument('-AR', '--ApplyRois', type=str, help='Apply ROIs to an image', default="./")
     parser.add_argument('-LF', '--LoadFrames', type=str, help='Load frames from a directory')
     parser.add_argument('-LR', '--LoadRois', type=str, help='Load ROIs from a file')
     parser.add_argument('-SR', '--SaveRois', type=str, help='Save ROIs to a file')
     parser.add_argument('-SF', '--SaveFrames', type=str, help='Save frames to a directory')
-    parser.add_argument('-ND', '--NormalizeData', type=str, help='Save frames to a directory')
+    parser.add_argument('-ND', '--NormalizeData', action='store_true', help='Save frames to a directory')
 
-    args = parser.parse_args()
+    args = parser.parse_args(args)
 
     if args.LoadRois:
         rois = loadRois(args.LoadRois)
@@ -74,6 +75,13 @@ def main():
         if args.LoadFrames:
             frames = loadFrames(args.LoadFrames)
             print(f"loaded {len(frames)} frames.")
+            if args.ApplyRois:
+                i= 0
+                _frames = []
+                for f in frames:
+                    for ff in applyRois(f, rois):
+                        _frames.append(ff)
+                frames = _frames
         else:
             frames = applyRois(imread(args.ApplyRois), rois)
         if args.NormalizeData:
@@ -90,4 +98,4 @@ def main():
 
     
 if __name__ == '__main__':
-    main()
+    main(sys.argv[1:])
