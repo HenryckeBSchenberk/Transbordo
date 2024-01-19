@@ -18,12 +18,12 @@ default_threshold = lambda r: r[-1] > 0.5
 
 steps = { 
     'presence': {
-        'validator': './model/models/presence',
+        'validator': './model/models/presence_extra/best',
         'threshold': default_threshold,
         'qtd_models': 1
     },
     'orientation':{
-        'validator':'./model/models/orientation',
+        'validator':'./model/models/orientation_extra/best',
         'threshold':default_threshold,
         'qtd_models': 1
     },
@@ -56,7 +56,7 @@ class Validator:
     def _worker_predict(self, model, frames):
         return model.predict(frames)
     
-    @Timer(name="Single validadtion Process")
+    @Timer(name="Validation")
     def __test_with_single_model(self, frames):
         # return self.model(array(frames)).numpy() # Slow
         return self.model.predict(array(frames), verbose=0)

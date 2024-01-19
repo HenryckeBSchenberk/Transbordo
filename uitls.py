@@ -2,6 +2,8 @@ import math
 import numpy as np
 import cv2
 
+KS = 15
+
 def get_distance(p1, p2):
     x1, y1 = p1
     x2, y2 = p2
@@ -37,12 +39,14 @@ class feature:
         return self.__str__()
 
 
-def get_features(i, max_area=5000, min_area=800)->[feature]:
+def get_features(i, max_area=5000, min_area=100)->[feature]:
 
-    _, img = cv2.threshold(cv2.GaussianBlur(cv2.cvtColor(i, cv2.COLOR_BGR2GRAY), (15,15),0), 0, 255, cv2.THRESH_BINARY_INV | cv2.THRESH_OTSU)
+    gray = cv2.cvtColor(i, cv2.COLOR_BGR2GRAY)
+    blur = cv2.GaussianBlur(gray, (KS,KS), 0)
+    _, img = cv2.threshold(blur,0, 255, cv2.THRESH_BINARY_INV | cv2.THRESH_OTSU)
 
     c, _ = cv2.findContours(img, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
-    c = np.array(list(filter(lambda x: min_area < cv2.contourArea(x) < max_area, c)))
+    c = filter(lambda x: min_area < cv2.contourArea(x) < max_area, c)
 
     features = []
     for contour in c:
@@ -93,3 +97,30 @@ def draw_ok_nok(i, flag, roi):
         cv2.putText(i, 'OK', (5,15), cv2.FONT_HERSHEY_COMPLEX_SMALL, 1, (0,255,0), 1)
         cv2.rectangle(i, (0,0), roi[2::], (0,255,0), 3)
     return i
+
+def divide_img_blocks(img, n_blocks=(5, 5)):
+    horizontal = np.array_split(img, n_blocks[0])
+    splitted_img = [np.array_split(block, n_blocks[1], axis=1) for block in horizontal]
+    return np.asarray(splitted_img, dtype=np.ndarray).reshape(n_blocks).reshape(-1)
+
+def calculate_roi_coordinates(roi_coords, n_blocks=(5, 5)):
+    x_roi, y_roi, roi_width, roi_height = roi_coords
+    block_width, block_height = roi_width // n_blocks[1], roi_height // n_blocks[0]
+
+    row_indices, col_indices = np.indices(n_blocks)
+    x = col_indices * block_width + x_roi
+    y = row_indices * block_height + y_roi
+
+    # Adjust the coordinates based on block index and size
+    x = x.flatten()
+    y = y.flatten()
+    roi_coordinates = np.column_stack((x, y, block_width * np.ones_like(x), block_height * np.ones_like(y)))
+
+    return roi_coordinates
+
+
+
+
+if __name__ == '__main__':
+    img = cv2.imread('./docs/asset/empty.jpg')
+    calculate_roi_coordinates((68, 104, 1359, 913), (5,20))

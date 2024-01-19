@@ -122,6 +122,7 @@ _default_rois = lambda: loadRois('./rois')
 _default_steps = lambda: importlib.import_module('validators').steps
 
 if __name__ == "__main__":
+    from uitls import calculate_roi_coordinates
     parser = argparse.ArgumentParser(description='Process images and ROIs.')
     parser.add_argument('-P', '--path', type=str, help='Path for image raw image')
     parser.add_argument('-R', '--roi', type=str, help="Path for 'roi' file", default='./rois')
