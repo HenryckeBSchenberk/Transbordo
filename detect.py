@@ -108,11 +108,11 @@ def validate(_frame, _steps, _roi, _show=False):
                     original[y:y+h, x:x+w] = i
                     plt.imshow(cvtColor(i, COLOR_BGR2RGB))
                     continue
-            if _show:
-                plt.imshow(np.zeros(i.shape, dtype=np.uint8), cmap='gray')
+            #if _show:
+                #plt.imshow(np.zeros(i.shape, dtype=np.uint8), cmap='gray')
 
-        if _show:
-            plt.show()
+        #if _show:
+            #plt.show()
 
         return frame_info, original
 
