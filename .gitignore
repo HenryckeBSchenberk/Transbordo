@@ -4,3 +4,5 @@ model/**/*.jpg
 test/**/*.jpg
 env/*
 *.pyc
+env*/*
+*test*/*
