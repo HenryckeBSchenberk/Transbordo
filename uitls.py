@@ -40,7 +40,7 @@ class feature:
         return self.__str__()
 
 
-def get_features(i, max_area=5000, min_area=100)->[feature]:
+def get_features(i, max_area=5000, min_area=100, reverse_over_limit=False)->[feature]:
 
     gray = cv2.cvtColor(i, cv2.COLOR_BGR2GRAY)
     blur = cv2.GaussianBlur(gray, (KS,KS), 0)
@@ -70,12 +70,18 @@ def get_features(i, max_area=5000, min_area=100)->[feature]:
             P2 = A
         else:
             P2 = B
-        
+
+        angle = get_angle((Cx,Cy), P2)
+
+        if (reverse_over_limit and angle > 180) or (not reverse_over_limit and angle < 180):
+            angle = (angle + 180) % 360
+            P2 = A if P2 == B else B
+
         features.append(
             feature(
                 (Cx,Cy),
                 cv2.contourArea(contour),
-                get_angle((Cx,Cy), P2),
+                round(angle,2),
                 P2,
                 img
             )

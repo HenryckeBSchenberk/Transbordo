@@ -28,14 +28,17 @@ class Camera:
         if fake_path is not None:
             import os
             os.environ['PYLON_CAMEMU'] = "1"
+        
         self.__camera = pylon.InstantCamera(pylon.TlFactory.GetInstance().CreateFirstDevice())
         self.__converter = pylon.ImageFormatConverter()
         self.__camera.Open()
         self.__frame = None
         self.hasNewFrame = False
         self.live_feed = live_feed
+
         if fake_path is not None:
             self.setup_fake(fake_path)
+        
         self.__setting_up()
         if self.live_feed:
             Thread(target=self.__trigger, daemon=True).start()

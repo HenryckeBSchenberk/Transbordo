@@ -57,7 +57,7 @@ def AdvancedRois(frame_path, w=55, h=77, r=0.7, _min=35, _max=40, show=True):
     from roi_viewer import calculate_corners, rounded_rectangle
     from uitls import calculate_average_coordinates
 
-    frame = cv2.imread(frame_path)
+    frame = cv2.imread(frame_path) if isinstance(frame_path, str) else frame_path
     drawing = np.zeros((frame.shape[0], frame.shape[1], 3), dtype=np.uint8)
 
     G = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
@@ -75,9 +75,9 @@ def AdvancedRois(frame_path, w=55, h=77, r=0.7, _min=35, _max=40, show=True):
     circles = [cv2.minEnclosingCircle(count) for count in ctn]
     
     coordinates_array = [circle[0] for circle in circles if _min < circle[1] < _max]
-    print(len(coordinates_array))
 
     coordinates_array = calculate_average_coordinates(coordinates_array, 15)
+    print(len(coordinates_array))
     rois = [calculate_corners(coordinate, w, h) for coordinate in coordinates_array]
     for _idx, roi in enumerate(rois):
         x,y,w,h = roi

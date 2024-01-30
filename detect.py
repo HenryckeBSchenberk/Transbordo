@@ -98,8 +98,7 @@ def validate(_frame, _steps, _roi, _show=False):
                 ax.set_yticks([])
 
             if _frame.presence:
-                
-                features = get_features(i)
+                features = get_features(i, reverse_over_limit=_frame.orientation)
                 _frame.update('features', features)
 
                 if _show:
