@@ -38,13 +38,58 @@ def CreateModel():
         #### Fully-Connected Layer ####
         #==================================
         Flatten(),
-        Dense(1024, activation='relu'),
+        # Dense(1024, activation='relu'),
         Dropout(0.2),
         Dense(2, activation='softmax')
     ])
 
     model.compile(optimizer=RMSprop(lr=0.001), loss='sparse_categorical_crossentropy', metrics=['acc'])
     return model
+
+
+def make_model(input_shape, num_classes):
+    inputs = keras.Input(shape=input_shape)
+
+    # Entry block
+    x = Rescaling(1.0 / 255)(inputs)
+    x = Conv2D(128, 3, strides=2, padding="same")(x)
+    x = BatchNormalization()(x)
+    x = Activation("relu")(x)
+
+    previous_block_activation = x  # Set aside residual
+
+    for size in [256, 512, 728]:
+        x = Activation("relu")(x)
+        x = SeparableConv2D(size, 3, padding="same")(x)
+        x = BatchNormalization()(x)
+
+        x = Activation("relu")(x)
+        x = SeparableConv2D(size, 3, padding="same")(x)
+        x = BatchNormalization()(x)
+
+        x = MaxPooling2D(3, strides=2, padding="same")(x)
+
+        # Project residual
+        residual = Conv2D(size, 1, strides=2, padding="same")(
+            previous_block_activation
+        )
+        x = add([x, residual])  # Add back residual
+        previous_block_activation = x  # Set aside next residual
+
+    x = SeparableConv2D(1024, 3, padding="same")(x)
+    x = BatchNormalization()(x)
+    x = Activation("relu")(x)
+
+    x = GlobalAveragePooling2D()(x)
+    if num_classes == 2:
+        units = 1
+    else:
+        units = num_classes
+
+    x = Dropout(0.25)(x)
+    # We specify activation=None so as to return logits
+    outputs = Dense(units, activation=None)(x)
+    return keras.Model(inputs, outputs)
 
 def createTrainGen(TRAIN_DIR='./model/train/', batch_size=250, target_size=(128, 128, 3)):
     datagen = ImageDataGenerator(
@@ -89,7 +134,7 @@ def trainModel(model, train_generator, validation_generator, check_point_path='.
     ]
 
     history = model.fit(
-            train_generator, epochs=1000,
+            train_generator, epochs=50,
             validation_data=validation_generator,
             callbacks=callbacks
     )
@@ -119,6 +164,12 @@ def main():
 
     if args.CreateModel:
         model = CreateModel(
+        )
+        model = make_model((128,128,3), 2)
+        model.compile(
+            optimizer=keras.optimizers.Adam(3e-4),
+            loss=keras.losses.BinaryCrossentropy(from_logits=True),
+            metrics=[keras.metrics.BinaryAccuracy(name="acc")],
         )
         print(model.summary())
     

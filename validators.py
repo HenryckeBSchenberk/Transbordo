@@ -15,6 +15,7 @@ from numpy import (
 )
 
 default_threshold = lambda r: r[-1] > 0.5
+# default_threshold = lambda r: (print(r) and False) or r > 0.5
 
 steps = { 
     'presence': {
@@ -59,6 +60,7 @@ class Validator:
     @Timer(name="Validation")
     def __test_with_single_model(self, frames):
         # return self.model(array(frames)).numpy() # Slow
+        # return self.model.evaluate(array(frames), verbose=0)
         return self.model.predict(array(frames), verbose=0)
 
     def __test_with_multiple_models(self, frames):
@@ -104,7 +106,7 @@ def get_best_models(directory, top_n=3):
                 
 
     # Ordena os modelos com base no loss e precisão
-    sorted_models = sorted(models_info, key=lambda x: (x[2], x[3]))
+    sorted_models = sorted(models_info, key=lambda x: (x[2], x[3], x[1]))
 
     # Pega os 'top_n' melhores modelos
     top_models = (load_model(model[0]) for model in sorted_models[:top_n])

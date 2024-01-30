@@ -2,6 +2,7 @@ model/**/*.h5
 !model/**/best/*.h5
 model/**/*.jpg
 test/**/*.jpg
-env/*
+env*/*
 *.pyc
 database/*
+test*/*

@@ -1,6 +1,7 @@
 import math
 import numpy as np
 import cv2
+from sklearn.cluster import KMeans
 
 KS = 15
 
@@ -118,8 +119,29 @@ def calculate_roi_coordinates(roi_coords, n_blocks=(5, 5)):
 
     return roi_coordinates
 
+def calculate_average_coordinates(coordinates, threshold):
+    coordinates_array = np.array(coordinates)
+    
+    # Calculate pairwise distances
+    pairwise_distances = np.linalg.norm(coordinates_array[:, None, :] - coordinates_array, axis=-1)
 
+    # Create a mask for coordinates that are close to each other
+    close_coordinates_mask = pairwise_distances < threshold
 
+    # Calculate the average of each group of close coordinates
+    average_coordinates = np.array([np.mean(coordinates_array[mask], axis=0) for mask in close_coordinates_mask])
+    average_coordinates = np.unique(average_coordinates, axis=0)
+    return average_coordinates.tolist()
+
+def auto_canny(image, sigma=0.33):
+	# compute the median of the single channel pixel intensities
+	v = np.median(image)
+	# apply automatic Canny edge detection using the computed median
+	lower = int(max(0, (1.0 - sigma) * v))
+	upper = int(min(255, (1.0 + sigma) * v))
+	edged = cv2.Canny(image, lower, upper)
+	# return the edged image
+	return edged
 
 if __name__ == '__main__':
     img = cv2.imread('./docs/asset/empty.jpg')

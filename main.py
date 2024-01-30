@@ -1,5 +1,5 @@
 from modbus import PLC, Camera, CAMERA_TRIGGER_REG, enviar_valores_para_clp
-from detect import validate, _default_rois, _default_steps
+from detect import validate, _default_rois, _default_steps, loadRois
 from codetiming import Timer
 import cv2
 
@@ -14,7 +14,7 @@ def process(camera):
 
 if __name__ == '__main__':
     _default_steps = _default_steps()
-    _default_rois = _default_rois()
+    _default_rois = loadRois("200_roi")
 
     camera = Camera()
     with camera as camera:
@@ -24,6 +24,10 @@ if __name__ == '__main__':
             
             presence =    [ frame.presence for frame in _info ]
             orientation = [ frame.orientation for frame in _info ]
+            angle = [ frame.features.angle for frame in _info ]
+            center = [ frame.features.center for frame in _info ]
+            print(angle)
+            print(center)
 
             enviar_valores_para_clp(100, presence, 20)
             enviar_valores_para_clp(200, orientation, 20)

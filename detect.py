@@ -122,6 +122,7 @@ _default_rois = lambda: loadRois('./rois')
 _default_steps = lambda: importlib.import_module('validators').steps
 
 if __name__ == "__main__":
+    from codetiming import Timer
     parser = argparse.ArgumentParser(description='Process images and ROIs.')
     parser.add_argument('-P', '--path', type=str, help='Path for image raw image')
     parser.add_argument('-R', '--roi', type=str, help="Path for 'roi' file", default='./rois')
@@ -134,7 +135,8 @@ if __name__ == "__main__":
 
     steps = importlib.import_module(args.models).steps
     _info, _new = validate(_frame=_frame, _roi=_rois, _show=args.show, _steps=steps.copy())
+
     presence =    [ frame.presence for frame in _info ]
     orientation = [ frame.orientation for frame in _info ]
     # enviar_valores_para_clp(100, presence)
-    print(presence, orientation)
+    print(presence,'\n', orientation)
