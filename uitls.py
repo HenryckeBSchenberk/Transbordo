@@ -40,7 +40,7 @@ class feature:
         return self.__str__()
 
 
-def get_features(i, max_area=5000, min_area=100, reverse_over_limit=False)->[feature]:
+def get_features(i, max_area=5000, min_area=100)->[feature]:
 
     gray = cv2.cvtColor(i, cv2.COLOR_BGR2GRAY)
     blur = cv2.GaussianBlur(gray, (KS,KS), 0)
@@ -55,37 +55,42 @@ def get_features(i, max_area=5000, min_area=100, reverse_over_limit=False)->[fea
 
         Cx = int(M["m10"] / M["m00"])
         Cy = int(M["m01"] / M["m00"])
+        try:
 
-        ellipse = cv2.fitEllipse(contour)
+            ellipse = cv2.fitEllipse(contour)
         
-        (x, y), (MA, ma), angle = ellipse
-        angle_rad = np.deg2rad(angle)
-        cos_angle = np.cos(angle_rad)
-        sin_angle = np.sin(angle_rad)
+            (x, y), (MA, ma), angle = ellipse
+            angle_rad = np.deg2rad(angle)
+            cos_angle = np.cos(angle_rad)
+            sin_angle = np.sin(angle_rad)
 
-        A = (int(x - sin_angle * ma / 2), int(y + cos_angle * ma / 2))
-        B = (int(x + sin_angle * ma / 2), int(y - cos_angle * ma / 2))                
+            A = (int(x - sin_angle * ma / 2), int(y + cos_angle * ma / 2))
+            B = (int(x + sin_angle * ma / 2), int(y - cos_angle * ma / 2))                
 
-        if get_distance(A, (Cx,Cy)) < get_distance(B, (Cx,Cy)):
-            P2 = A
-        else:
-            P2 = B
-
-        angle = get_angle((Cx,Cy), P2)
-
-        if (reverse_over_limit and angle > 180) or (not reverse_over_limit and angle < 180):
-            angle = (angle + 180) % 360
-            P2 = A if P2 == B else B
-
-        features.append(
-            feature(
-                (Cx,Cy),
-                cv2.contourArea(contour),
-                round(angle,2),
-                P2,
-                img
+            if get_distance(A, (Cx,Cy)) < get_distance(B, (Cx,Cy)):
+                P2 = A
+            else:
+                P2 = B
+        
+            features.append(
+                feature(
+                    (Cx,Cy),
+                    cv2.contourArea(contour),
+                    get_angle((Cx,Cy), P2),
+                    P2,
+                    img
+                )
             )
-        )
+        except Exception:
+            features.append(
+                feature(
+                    (Cx,Cy),
+                    0,#cv2.contourArea(contour),
+                    0,#get_angle((Cx,Cy), P2),
+                    (0,0),#P2,
+                    img
+                )
+            )
     return features
 
 def draw_features(i, features):
@@ -104,6 +109,10 @@ def draw_ok_nok(i, flag, roi):
         cv2.putText(i, 'OK', (5,15), cv2.FONT_HERSHEY_COMPLEX_SMALL, 1, (0,255,0), 1)
         cv2.rectangle(i, (0,0), roi[2::], (0,255,0), 3)
     return i
+
+def draw_roi(i, roi):
+    cv2.rectangle(i, (0,0), roi[2::], (255,255,255), 3)
+
 
 def divide_img_blocks(img, n_blocks=(5, 5)):
     horizontal = np.array_split(img, n_blocks[0])

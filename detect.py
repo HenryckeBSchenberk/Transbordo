@@ -16,7 +16,8 @@ from split_data import (
 from uitls import (
     get_features,
     draw_features,
-    draw_ok_nok
+    draw_ok_nok,
+    draw_roi
 )
     
 class frame:
@@ -52,7 +53,7 @@ def perform_validation(frames, frame_info, thr_function, validator):
     return new_frames, new_frame_info
 
 def perform_steps(frames, frame_info, steps, keys=False):
-    if keys != []:
+    if keys != [] and frames != []:
         keys = keys or list(steps.keys())
         step = steps[keys.pop(0)]
         thf = step['threshold']
@@ -65,14 +66,15 @@ def insertFrames(rois, frames, image):
         image[y:y+h, x:x+w] =  frame
 
 
-def validate(_frame, _steps, _roi, _show=False):
+def validate(_frame, _steps, _roi, expand=(0,0), _show=False):
     if _frame is not None:
 
         img = _frame
         original = img.copy()
+        original2 = img.copy()
         rois = _roi
 
-        frames2draw = list(applyRois(img, rois))
+        frames2draw = list(applyRois(img, rois, expand))
         frames2validade = normalizeData(frames2draw)
         frame_info = [frame(fo, fd, r, presence=False, orientation=False) for fo, fd, r in zip(frames2draw, frames2validade, rois)]
         perform_steps(frames2validade, frame_info, _steps)
@@ -91,6 +93,7 @@ def validate(_frame, _steps, _roi, _show=False):
             roi = _frame.roi
             x,y,w,h = roi
             i = _frame.frame_original
+            draw_roi(i, roi)
             original[y:y+h, x:x+w] = i
             if _show:
                 ax = plt.subplot(rows, cols, idx+1)
@@ -98,14 +101,15 @@ def validate(_frame, _steps, _roi, _show=False):
                 ax.set_yticks([])
 
             if _frame.presence:
-                features = get_features(i, reverse_over_limit=_frame.orientation)
+                
+                features = get_features(i)
                 _frame.update('features', features)
 
                 if _show:
                     i = draw_features(i, features)
                     draw_ok_nok(i, _frame.orientation, roi)
                     original[y:y+h, x:x+w] = i
-                    plt.imshow(cvtColor(i, COLOR_BGR2RGB))
+                    #plt.imshow(cvtColor(i, COLOR_BGR2RGB))
                     continue
             #if _show:
                 #plt.imshow(np.zeros(i.shape, dtype=np.uint8), cmap='gray')
@@ -113,7 +117,7 @@ def validate(_frame, _steps, _roi, _show=False):
         #if _show:
             #plt.show()
 
-        return frame_info, original
+        return frame_info, original, original2
 
     raise AttributeError('An image/frame should be provided to this function analise')
 

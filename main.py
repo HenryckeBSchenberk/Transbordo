@@ -1,58 +1,60 @@
-from modbus import PLC, Camera, CAMERA_TRIGGER_REG, enviar_valores_para_clp
+from modbus import PLC, Camera, CAMERA_TRIGGER_REG, CAMERA_TRIGGER_OK,enviar_valores_para_clp
 from detect import validate, _default_rois, _default_steps, loadRois
 from codetiming import Timer
 import cv2
-import numpy as np
-from split_data import AdvancedRois
-
+import pickle
 SHOW = True
+mx, my = pickle.load(open('mp_xy.pkl', 'rb')) 
 
 # @Timer(name="Main validation process")
 def process(camera):
-    should_trigger = True or PLC.read_input_registers(CAMERA_TRIGGER_REG)
+    should_trigger = PLC.read_coils(CAMERA_TRIGGER_REG, 1)[0]
     if should_trigger:
-        _info, _frame = camera.read()
-        if _info and _frame is not None:
-            rois = AdvancedRois(_frame, w=60,h=80,_min=30, _max=45, show=False)
-            return validate(_frame,  _default_steps.copy(), rois, 20)
-        return None, None
-    
+        print("m60-m70 status: ", PLC.read_coils(60,10))
+        #PLC.write_single_coil(CAMERA_TRIGGER_OK, False)
+        #PLC.write_single_coil(CAMERA_TRIGGER_REG, False)
+        for _ in range(3):
+            _info, _frame = camera.read()
+            _frame = cv2.remap(_frame, mx, my, cv2.INTER_LINEAR)
+            
+        if _info:
+            if PLC.read_coils(68, 1)[0]:
+                _default_rois=_default_200rois
+            else:
+                _default_rois=_default_100rois
+            return validate(_frame,  _default_steps.copy(), _default_rois, (10,10), 20)
+    PLC.write_multiple_coils(CAMERA_TRIGGER_REG,[False,False])
+    return None, None, None
 if __name__ == '__main__':
     _default_steps = _default_steps()
-    _default_rois = loadRois("200_roi")
+    _default_200rois = loadRois("200_roi",(10,0))
+    _default_100rois = loadRois("100_roi",(0,0))
+    
 
-    #camera = Camera()
-    camera = Camera(True, "D:\Images\m3\B")
+    camera = Camera(False)
+    #camera = Camera(False, "/home/jetson/Pictures/m3/A")
     with camera as camera:
-        while cv2.waitKey(1) !=27 :
+        while True :
             # if PLC.read_holding_registers('Y0.11', 1)[0]:
-            _info, _new = process(camera)
-            if _info:
-                presence =    [ frame.presence for frame in _info ]
-                orientation = [ frame.orientation for frame in _info ]
-                angle = [ frame.features[0].angle if frame.presence else 0.00 for frame in _info ]
-                center = [ (np.array(frame.features[0].center) - (np.array(frame.roi[2::])/2)) if frame.presence else (0, 0) for frame in _info ]
+            try:
+                _info, _new, old = process(camera)
+                if _info:
 
-                cv2.imshow('org', _new)
+                    presence =    [ frame.presence for frame in _info ][::-1]
+                    orientation = [ frame.orientation for frame in _info ][::-1]
+                    print(orientation)
+                    enviar_valores_para_clp(100, presence, 20)
+                    enviar_valores_para_clp(300, orientation, 20)
+                    PLC.write_multiple_coils(CAMERA_TRIGGER_OK, [True])
+                    cv2.imwrite('atual.jpg', old)
+                    cv2.imwrite('process.jpg', _new)
+            except IndexError:
+                print("Index Error: modbus connection fail?")
+                pass
+        #cv2.waitKey(1)
+                
+#                angle = [ frame.features.angle for frame in _info ]
+#                center = [ frame.features.center for frame in _info ]
+#                print(angle)
+#                print(center)
 
-            #enviar_valores_para_clp(100, presence, 20)
-            #enviar_valores_para_clp(200, orientation, 20)
-"""
-# 100_roi
-{
-    w:57,
-    h:139,
-    r:0.2,
-    _min:50,
-    _max:80
-}
-
-# 200_roi
-{
-    w:55,
-    h:77,
-    r:0.7,
-    _min:35,
-    _max:40,
-}
-"""                
