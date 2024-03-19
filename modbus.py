@@ -9,6 +9,7 @@ UNIT_ID = 1
 
 CAMERA_TRIGGER_REG=66
 CAMERA_TRIGGER_OK=67
+OK_RECALIBRATE_REG=68
 
 PLC = ModbusClient(host=SLAVE_ADDRESS, port=PORT, unit_id=UNIT_ID, auto_open=True)
 prefix = 'C:/Users/Henrycke/Documents/GitHub/Transbordo/'
