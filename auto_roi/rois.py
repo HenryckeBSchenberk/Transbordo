@@ -98,8 +98,9 @@ def get_values(*args):
 
 def merge_with_old(old_rois, new_roi):
     missing_cords_on_new = utils.pontos_faltando(np.array(old_rois), np.array(new_roi), 20)
-    # print(missing_cords_on_new)
-    return np.concatenate((new_roi, missing_cords_on_new))
+    if len(missing_cords_on_new) > 0:
+        return np.concatenate((new_roi, missing_cords_on_new))
+    return new_roi
 
 if __name__ == "__main__":
     import argparse

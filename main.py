@@ -4,12 +4,18 @@ import  auto_roi.rois as ROIS
 import  auto_roi.remap as mapper
 import cv2
 import pickle
+import numpy as np
 SHOW = True
 mx, my = pickle.load(open('/home/jetson/Documents/test/Transbordo/mp_xy.pkl', 'rb'))
 
 SEND_CENTERS = False
 
-B_ref = [(0,0), (0,100), (100,0)]
+# B_ref = [(299.8, 198.18), (297.1,5), (19.2, 3.2)]
+B_ref = [(288.68, 208.08), (287.78, 25.32), (16.76, 27.49)]
+offset_garra = [(0, -32.23), (0, -32.23), (0, -32.23)]
+B_ref = np.array(B_ref) + np.array(offset_garra)
+#279.38, 194.42
+#283.78, 162.19, 
 class PROCESS:
 
     rois = {
@@ -57,24 +63,28 @@ class PROCESS:
         if _info:
             r, i = ROIS.new(_img=_frame, model=PROCESS.get_model_name())
             if PROCESS.FIRST():
-                return r[PROCESS.get_roi_tag()], i 
-            return ROIS.merge_with_old(PROCESS.get_roi(), r[PROCESS.get_roi_tag()]), i
+                return  r[PROCESS.get_roi_tag()], i 
+            return  ROIS.merge_with_old(PROCESS.get_roi(), r[PROCESS.get_roi_tag()]), i
 
     def FIRST():
         return PROCESS.rois["200"] is None or PROCESS.rois["100"] is None
 
 def process(camera):
+    # input("PRESS TO VALIDATE")
     if PROCESS.should_trigger() and not PROCESS.FIRST():
         return PROCESS.validade(camera)
     
     if PROCESS.should_recalibrate():
         r, i = PROCESS.update_roi()
-        PROCESS.rois[PROCESS.get_model_name()] = r
+        model = PROCESS.get_model_name()
+        if (len(r) == int(model)):
+            PROCESS.rois[model] = r
 
-        with open(f"{PROCESS.get_model_name()}_roi", 'wb') as file:
-            pickle.dump(r, file)
-        
-        cv2.imwrite(f"rois_{PROCESS.get_model_name()}.jpg", i)
+            with open(f"{model}_roi", 'wb') as file:
+                pickle.dump(r, file)
+            
+            print(len(r))
+            cv2.imwrite(f"rois_{model}.jpg", i)
     PLC.write_multiple_coils(CAMERA_TRIGGER_REG,[False,False])
     return None, None, None
 
@@ -88,32 +98,40 @@ if __name__ == '__main__':
                 _info, _new, old = process(camera)
                 if _info:
 
+                    if SEND_CENTERS:
+                        A_ref, AREF_OFF, _new = mapper.get_A_ref(mapper.dots_rois, _new)
+                        print(A_ref)
+
                     presence =    [ frame.presence for frame in _info ][::-1]
                     orientation = [ frame.orientation for frame in _info ][::-1]
                     
-                    enviar_valores_para_clp(100, presence, 20)
+                    enviar_valores_para_clp(804, presence, 20)
                     enviar_valores_para_clp(300, orientation, 20)
+                    # print(presence)
 
+
+                    cv2.imwrite('atual.jpg', old)
+                    cv2.imwrite('process.jpg', _new)
+                            
+                        
                     if SEND_CENTERS:
                         centers =     [ frame.features[-1].center if frame.presence else (0,0) for frame in _info ]
-
-                        A_ref = mapper.get_A_ref(mapper.dots_rois, _new)
-                        
+                        A_ref = mapper.adjust_offset(A_ref, AREF_OFF)
                         offsets = [(frame.roi[0], frame.roi[1]) for frame in _info]
                         centers = mapper.adjust_offset(centers, offsets)
                         centers  = mapper.correlação_planar(centers, A_ref, B_ref)
                         
-                        x_array = centers[:, 0]
-                        y_array = centers[:, 1]
-
-                        enviar_valores_para_clp(500, x_array, 20)
-                        enviar_valores_para_clp(700, y_array, 20)
+                        x_array = centers[:, 0][::-1].tolist()
+                        y_array = centers[:, 1][::-1].tolist()
+                        print(x_array[0], x_array[-1])
+                        print(y_array[0], y_array[-1])
+                        
+                        enviar_valores_para_clp(500, x_array, 20, reg=True)
+                        enviar_valores_para_clp(700, y_array, 20, reg=True)
 
                     PLC.write_multiple_coils(CAMERA_TRIGGER_OK, [True])
-                    cv2.imwrite('atual.jpg', old)
-                    cv2.imwrite('process.jpg', _new)
 
-            except IndexError:
-                print("Index Error: modbus connection fail?")
+            except IndexError as e:
+                print("Index Error: modbus connection fail?", e)
                 pass
 

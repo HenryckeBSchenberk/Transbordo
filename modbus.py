@@ -17,14 +17,19 @@ prefix = 'C:/Users/Henrycke/Documents/GitHub/Transbordo/'
 
 from threading import Thread
 
-def enviar_valores_para_clp(start_address, array, size=20):
+def enviar_valores_para_clp(start_address, array, size=20, reg=False):
     subarrays = [array[i:i+size] for i in range(0, len(array), size)]
 
     # Enviar cada subarray para os registradores correspondentes
     for i, subarray in enumerate(subarrays):
         address = start_address + i * size
         #print(address, subarray)
-        PLC.write_multiple_coils(address, subarray)
+        if reg:
+            d = [int(i*100) for i in subarray]
+            # print(d)
+            PLC.write_multiple_registers(address, d)
+        else:
+            PLC.write_multiple_coils(address, subarray)
 
 class Camera:
     def __init__(self, live_feed=True, fake_path=None):

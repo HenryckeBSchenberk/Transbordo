@@ -54,7 +54,7 @@ def detect_2(img, _min, _max, group_distance, a_min=700, a_max=7500):
         cv2.THRESH_BINARY,11,2)
     
     ctn, _ = cv2.findContours(MK, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
-    ctn = list(filter(lambda c: 700 < cv2.contourArea(c) < 7500, ctn))
+    ctn = list(filter(lambda c: a_min < cv2.contourArea(c) < a_max, ctn))
     circles = [cv2.minEnclosingCircle(count) for count in ctn]
     rectangles = [cv2.minAreaRect(count) for count in ctn]
     rectangles = [[(((x+w)/2), ((y+h)/2)), r] for (x, y), (w, h), r in rectangles]
