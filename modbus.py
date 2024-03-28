@@ -34,12 +34,14 @@ class Camera:
         self.__camera = pylon.InstantCamera(pylon.TlFactory.GetInstance().CreateFirstDevice())
         self.__converter = pylon.ImageFormatConverter()
         self.__camera.Open()
-        pylon.FeaturePersistence.Load("cameraSettings.pfs", self.__camera.GetNodeMap(), True)
         self.__frame = None
         self.hasNewFrame = False
         self.live_feed = live_feed
         if fake_path is not None:
             self.setup_fake(fake_path)
+        else:
+            pylon.FeaturePersistence.Load("cameraSettings.pfs", self.__camera.GetNodeMap(), True)
+            
         self.__setting_up()
         if self.live_feed:
             Thread(target=self.__trigger, daemon=True).start()
