@@ -9,7 +9,8 @@ UNIT_ID = 1
 
 CAMERA_TRIGGER_REG=66
 CAMERA_TRIGGER_OK=67
-OK_RECALIBRATE_REG=68
+MODEL_REGISTER=68
+OK_RECALIBRATE_REG=69
 
 PLC = ModbusClient(host=SLAVE_ADDRESS, port=PORT, unit_id=UNIT_ID, auto_open=True)
 prefix = 'C:/Users/Henrycke/Documents/GitHub/Transbordo/'
@@ -33,6 +34,7 @@ class Camera:
         self.__camera = pylon.InstantCamera(pylon.TlFactory.GetInstance().CreateFirstDevice())
         self.__converter = pylon.ImageFormatConverter()
         self.__camera.Open()
+        pylon.FeaturePersistence.Load("cameraSettings.pfs", self.__camera.GetNodeMap(), True)
         self.__frame = None
         self.hasNewFrame = False
         self.live_feed = live_feed

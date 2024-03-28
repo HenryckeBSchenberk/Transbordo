@@ -11,9 +11,7 @@ from uuid import uuid1 as _id
 import argparse
 
 def applyRois(image, rois=[], expand=(0,0)):
-        return (
-             image[y:y+h, x:x+w]  for x, y, w, h in rois
-        )
+    return ( image[y:y+h, x:x+w]  for x, y, w, h in rois )
 
 def createRois(image):
     rois = unique(selectROIs('Selecione as ROIs (Pressione Enter quando terminar)', image), axis=0)
@@ -28,8 +26,10 @@ def loadRois(path, expand=(0,0)):
     if exists(path):
         with open(path, 'rb') as file:
             rois = load(file)
+            print(len(rois))
             rois = [((x+expand[0]), (y+expand[1]), w, h) for x, y, w, h in rois]
             return rois 
+    return None
         
 def loadFrames(path):
     images = []

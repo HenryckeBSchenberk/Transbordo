@@ -1,7 +1,7 @@
 
 import cv2 
 import numpy as np
-import utils
+import auto_roi.utils as utils
 
 def draw(img, detected_circles, _mask=None, _r=0.7, _w=55,_h=77, group_distance=40, p=3, color=(0,0,0)):
     # Draw circles that are detected.

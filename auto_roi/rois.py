@@ -1,7 +1,7 @@
 import cv2
-import circles
+import auto_roi.circles as circles
 import numpy as np
-import utils
+import auto_roi.utils as utils
 import pickle
 
 ALL_LOAD = False
@@ -16,11 +16,11 @@ rois = {
 model_draw = {
     "100":{
         "draw":{"_r":0.2, "_w":55,"_h":139, "group_distance":40},
-        "mask_roi":{"_min":53, "_max":75, "group_distance":24, "a_min":700, "a_max":7500},
+        "mask_roi":{"_min":53, "_max":80, "group_distance":24, "a_min":700, "a_max":7500},
         "auto_roi": None,
     },
     "200":{
-        "draw":{"_r":0.7, "_w":55,"_h":77},
+        "draw":{"_r":0.7, "_w":60,"_h":80},
         "mask_roi":{"_min":32, "_max":45, "group_distance":28, "a_min":700, "a_max":7500},
         "auto_roi":{"minDist":20,"param1":40,"param2":19,"minRadius":27,"maxRadius":32},
         # "auto_roi":{"minDist":17,"param1":65,"param2":19,"minRadius":27,"maxRadius":33},
@@ -43,7 +43,7 @@ def update_rois():
         _, auto_rois, _, _ = circles.draw(img_draw_a, auto_roi_c, **model_draw[model]["draw"], color=(0, 0, 255))
         rois["auto"] = auto_rois
 
-def new(*args, _img=None):
+def new(*args, _img=None, model="100"):
     global rois
     img_draw = original.copy() if _img is None else _img.copy()
     img = original.copy() if _img is None else _img.copy()
@@ -69,7 +69,7 @@ def new(*args, _img=None):
         _, merge_rois, _, _ = circles.draw(img_draw, new_c.reshape(1,-1,2), **model_draw[model]["draw"], group_distance=50, p=2, color=(0,0,0))
         rois["merge"] = merge_rois
     
-    cv2.imshow("rois", img_draw)
+    #cv2.imshow("rois", img_draw)
     return rois, img_draw
 
 def nothing(*args):
