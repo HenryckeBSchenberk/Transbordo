@@ -98,6 +98,9 @@ if __name__ == '__main__':
                         centers =     [ frame.features[-1].center if frame.presence else (0,0) for frame in _info ]
 
                         A_ref = mapper.get_A_ref(mapper.dots_rois, _new)
+                        
+                        offsets = [(frame.roi[0], frame.roi[1]) for frame in _info]
+                        centers = mapper.adjust_offset(centers, offsets)
                         centers  = mapper.correlação_planar(centers, A_ref, B_ref)
                         
                         x_array = centers[:, 0]
