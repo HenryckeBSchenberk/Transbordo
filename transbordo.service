@@ -1,0 +1,12 @@
+[Unit]
+Descripition=Trasbordo CNN script modbus
+After=network.target
+
+[Service]
+ExecStart=/home/jetson/Documents/Transbordo/env/bin/python3.11  /home/jetson/Documents/Transbordo/main.py
+WorkingDirectory=/home/jetson/Documents/Transbordo/
+User=jetson
+Restart=always
+
+[Install]
+WantedBy=multi-user.target
