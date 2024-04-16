@@ -1,5 +1,5 @@
 [Unit]
-Descripition=Trasbordo CNN script modbus
+Description=Trasbordo CNN script modbus
 After=network.target
 
 [Service]
