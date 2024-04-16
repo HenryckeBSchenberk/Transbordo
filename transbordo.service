@@ -3,8 +3,8 @@ Descripition=Trasbordo CNN script modbus
 After=network.target
 
 [Service]
-ExecStart=/home/jetson/Documents/Transbordo/env/bin/python3.11  /home/jetson/Documents/Transbordo/main.py
-WorkingDirectory=/home/jetson/Documents/Transbordo/
+ExecStart=/home/jetson/Documents/APP/Transbordo/env/bin/python3.11  /home/jetson/Documents/APP/Transbordo/main.py
+WorkingDirectory=/home/jetson/Documents/APP/Transbordo/
 User=jetson
 Restart=always
 
