@@ -18,6 +18,7 @@ prefix = 'C:/Users/Henrycke/Documents/GitHub/Transbordo/'
 from threading import Thread
 
 def enviar_valores_para_clp(start_address, array, size=20, reg=False):
+    print(f"Atualizando CLP com {len(array)} informações")
     subarrays = [array[i:i+size] for i in range(0, len(array), size)]
 
     # Enviar cada subarray para os registradores correspondentes
@@ -29,7 +30,12 @@ def enviar_valores_para_clp(start_address, array, size=20, reg=False):
             # print(d)
             PLC.write_multiple_registers(address, d)
         else:
-            PLC.write_multiple_coils(address, subarray)
+            R = False
+            while not R:
+                R = PLC.write_multiple_coils(address, subarray)
+                if not R:
+                    print("Fail to Write at:", address, " to", address+len(subarray))
+
 
 class Camera:
     def __init__(self, live_feed=True, fake_path=None):

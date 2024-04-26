@@ -6,8 +6,8 @@ import cv2
 import pickle
 import numpy as np
 SHOW = True
-mx, my = pickle.load(open('/home/jetson/Documents/test/Transbordo/mp_xy.pkl', 'rb'))
-
+mx, my = pickle.load(open('/home/jetson/Documents/APP/Transbordo/mp_xy.pkl', 'rb'))
+from time import sleep
 SEND_CENTERS = False
 
 # B_ref = [(299.8, 198.18), (297.1,5), (19.2, 3.2)]
@@ -130,6 +130,7 @@ if __name__ == '__main__':
                         enviar_valores_para_clp(700, y_array, 20, reg=True)
 
                     PLC.write_multiple_coils(CAMERA_TRIGGER_OK, [True])
+                    sleep(5)
 
             except IndexError as e:
                 print("Index Error: modbus connection fail?", e)
