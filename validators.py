@@ -24,7 +24,8 @@ steps = {
         'qtd_models': 1
     },
     'orientation':{
-        'validator':'./model/models/orientation_extra/best',
+        # 'validator':'./model/models/orientation_extra/best',
+        'validator':'./model/models/orientation_extra_test',
         'threshold':default_threshold,
         'qtd_models': 1
     },
@@ -61,7 +62,7 @@ class Validator:
     def __test_with_single_model(self, frames):
         # return self.model(array(frames)).numpy() # Slow
         # return self.model.evaluate(array(frames), verbose=0)
-        return self.model.predict(array(frames), verbose=0)
+        return self.model.predict(array(frames), verbose=0, batch_size=200)
 
     def __test_with_multiple_models(self, frames):
         futures = []

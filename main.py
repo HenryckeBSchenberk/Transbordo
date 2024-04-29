@@ -85,7 +85,7 @@ def process(camera):
             
             print(len(r))
             cv2.imwrite(f"rois_{model}.jpg", i)
-    PLC.write_multiple_coils(CAMERA_TRIGGER_REG,[False,False])
+    PLC.write_multiple_coils(CAMERA_TRIGGER_REG,[False, False, False, False])
     return None, None, None
 
 
