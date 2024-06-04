@@ -21,7 +21,7 @@ def callback(command, manager):
             try:
                 model_path = command.get('model_path')
                 manager.model = model_path
-                payload = {"msg":"Modelo carregado com sucesso", "gpu": gpus, 'to_output':False}
+                payload = {"msg":"Modelo carregado com sucesso", 'to_output':False}
             except (TypeError) as e:
                 payload = {"msg":"Falha ao carregar o modelo", "err": e, 'to_output':False}
             except Exception as e:
