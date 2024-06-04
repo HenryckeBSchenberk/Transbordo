@@ -1,0 +1,281 @@
+services:
+  CAMERA:
+    profiles:
+      - service
+      - camera
+    privileged: true
+    container_name: "${CAMERA_HOSTNAME}"
+    image: python:opencv
+    logging:
+      options:
+        max-size: "10m"
+        max-file: 3    
+    restart: unless-stopped
+    build:
+      context: "/home/delta/app/config/docker/"
+      dockerfile: "python_opencv.dockerfile"
+      args:
+        - version=3.11.5
+    command: [  "python", "-u","camera_service.py",
+                # "--service_host", "",
+                "--service_port", "${CAMERA_PORT}",
+                "--output_port", "${FILTER_PORT}",
+                "--output_host", "${FILTER_HOSTNAME}",
+                ]
+    # command: ["sleep", "infinity"]
+    # command: ["python", "-c", "import time; time.sleep(99999)"]
+    networks:
+      - bind-network
+    expose:
+      - ${CAMERA_PORT}
+      - ${FILTER_PORT}
+      - ${MODEL_PORT}
+      - ${INTERPRETER_PORT}
+      - ${CLP_PORT}
+#    devices:
+#      - "/dev/video0:/dev/video0"
+    volumes:
+      - /dev:/dev
+      - /home/delta/app/services/:/app/
+      - /home/delta/app/config/extra:/app/config/
+#    depends_on:
+#       - CLP
+#       - GPU
+
+  FILTER:
+    profiles:
+      - service
+      - filter
+    container_name: "${FILTER_HOSTNAME}"
+    image: python:opencv
+    logging:
+      options:
+        max-size: "10m"
+        max-file: 3    
+
+    restart: always
+    build:
+      context: "/home/delta/app/config/docker/"
+      dockerfile: "python_opencv.dockerfile"
+      args:
+        - version=3.11.5
+    command: [  "python", "-u","filter_service.py",
+                "--service_port", "${FILTER_PORT}",
+                "--output_port", "${MODEL_PORT}",
+                "--output_host", "${MODEL_HOSTNAME}",
+    ]
+    networks:
+      - bind-network
+    expose:
+      - ${CAMERA_PORT}
+      - ${FILTER_PORT}
+      - ${MODEL_PORT}
+      - ${INTERPRETER_PORT}
+      - ${CLP_PORT}
+    volumes:
+      - /home/delta/app/services/:/app/
+    # depends_on:
+    #   - GPU
+  GPU:
+    container_name: "${MODEL_HOSTNAME}"
+    profiles:
+      - service
+      - gpu
+    image: tensorflow:gpu
+    logging:
+      options:
+        max-size: "10m"
+        max-file: 3    
+    restart: always
+    build: 
+      context: "/home/delta/app/config/docker/"
+      dockerfile: "tensor_opencv.dockerfile"
+      args:
+        version: latest-gpu
+    networks:
+      - bind-network
+    expose:
+      - ${CAMERA_PORT}
+      - ${FILTER_PORT}
+      - ${MODEL_PORT}
+      - ${INTERPRETER_PORT}
+      - ${CLP_PORT}
+    volumes:
+      - /home/delta/app/services/:/app/
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+    privileged: true
+    environment:
+      - NVIDIA_VISIBLE_DEVICES=all
+      - CUDA_VISIBLE_DEVICES=0
+    command: [  "python", "-u","prediction_service.py",
+                "--service_port", "${MODEL_PORT}",
+                "--output_port", "${INTERPRETER_PORT}",
+                "--output_host", "${INTERPRETER_HOSTNAME}",
+              ]
+    # depends_on:
+    #   - INTERPRETER
+  INTERPRETER:
+    profiles:
+      - service
+      - interpreter
+    container_name: "${INTERPRETER_HOSTNAME}"
+    image: python:opencv
+    logging:
+      options:
+        max-size: "10m"
+        max-file: 3    
+    restart: always
+    build:
+      context: "/home/delta/app/config/docker/"
+      dockerfile: "python_opencv.dockerfile"
+      args:
+        - version=3.11.5
+    command: [  "python", "-u","interpreter_service.py",
+                "--service_port", "${INTERPRETER_PORT}",
+                "--output_port", "${CLP_PORT}",
+                "--output_host", "${CLP_HOSTNAME}",
+    ]
+    networks:
+      - bind-network
+    expose:
+      - ${CAMERA_PORT}
+      - ${FILTER_PORT}
+      - ${MODEL_PORT}
+      - ${INTERPRETER_PORT}
+      - ${CLP_PORT}
+    volumes:
+      - /home/delta/app/services/:/app/
+  CLP:
+    profiles:
+      - service
+      - clp
+    container_name: "${CLP_HOSTNAME}"
+    image: python:opencv
+    logging:
+      options:
+        max-size: "10m"
+        max-file: 3    
+    restart: always
+    build:
+      context: "/home/delta/app/config/docker/"
+      dockerfile: "python_opencv.dockerfile"
+      args:
+        - version=3.11.5
+    command: [  "python", "-u","clp_service.py",
+                "--service_port", "${CLP_PORT}",
+                "--output_port", "${CLP_PORT}",
+                "--output_host", "${CLP_HOSTNAME}",
+    ]
+    networks:
+      - bind-network
+    # network_mode: host
+    ports:
+      - 502:502
+    expose:
+      - ${CAMERA_PORT}
+      - ${FILTER_PORT}
+      - ${MODEL_PORT}
+      - ${INTERPRETER_PORT}
+      - ${CLP_PORT}
+    volumes:
+      - /home/delta/app/services/:/app/
+  CPU:
+    profiles:
+      - "test"
+      - cpu
+    container_name: "${MODEL_HOSTNAME}"
+    image: tensorflow:cpu
+    logging:
+      options:
+        max-size: "10m"
+        max-file: 3    
+    build: 
+      context: "/home/delta/app/config/docker/"
+      dockerfile: "tensor_opencv.dockerfile"
+      args:
+        version: latest
+    networks:
+      - bind-network
+    expose:
+      - "6000"
+    volumes:
+      - /home/delta/app/services/:/app/
+    command: ["python", "-u","prediction_service.py"]
+  TEST_GPU:
+    profiles:
+      - "test"
+    image: tensorflow:cpu
+    logging:
+      options:
+        max-size: "10m"
+        max-file: 3    
+    build: 
+      context: "/home/delta/app/config/docker/"
+      dockerfile: "tensor_opencv.dockerfile"
+      args:
+        version: latest
+    networks:
+      - bind-network
+    expose:
+      - "6000"
+    volumes:
+      - /home/delta/app/services/:/app/
+    command: ["python", "-m", "clients.prediction_client"] #, "--model_path", "default.keras"]
+  TEST_CAMERA:
+    profiles:
+      - test
+      - camera
+      - service
+    image: python:opencv
+    logging:
+      options:
+        max-size: "10m"
+        max-file: 3    
+    build:
+      context: "/home/delta/app/config/docker/"
+      dockerfile: "python_opencv.dockerfile"
+      args:
+        - version=3.11.5
+    # command: ["python", "-m", "clients.camera_client"]
+    command: ["sleep", "infinity"]
+    networks:
+      - bind-network
+    expose:
+      - ${CAMERA_PORT}
+      - ${FILTER_PORT}
+      - ${MODEL_PORT}
+      - ${INTERPRETER_PORT}
+    volumes:
+      - /home/delta/app/services/:/app/
+  TEST_FILTER:
+    profiles:
+      - test
+    image: python:opencv
+    logging:
+      options:
+        max-size: "10m"
+        max-file: 3    
+    build:
+      context: "/home/delta/app/config/docker/"
+      dockerfile: "python_opencv.dockerfile"
+      args:
+        - version=3.11.5
+    command: ["python", "-m", "clients.filter_client"]
+    networks:
+      - bind-network
+    expose:
+      - "4000"
+      - "5000"
+    volumes:
+      - /home/delta/app/services/:/app/
+    
+    
+networks: 
+  bind-network:
+    driver: bridge

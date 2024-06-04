@@ -1,9 +1,7 @@
-model/**/*.h5
-!model/**/best/*.h5
-model/**/*.jpg
-test/**/*.jpg
-env*/*
-*.pyc
-env*/*
-*test*/*
-database/*
+
+*.jpg
+*.keras
+*.env
+*.deb
+**.pyc
+**/env/**
