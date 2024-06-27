@@ -1,0 +1,146 @@
+services:
+  DEFAULT: &default
+    container_name: "default-container"
+    image: python:opencv
+    build:
+      context: "../../config/docker/"
+      dockerfile: "python_opencv.dockerfile"
+      args:
+        - version=3.11.5
+    logging:
+      options:
+        max-size: "10m"
+        max-file: 3    
+    restart: unless-stopped
+    networks:
+      - bind-network
+    expose:
+      - ${CAMERA_PORT}
+      - ${FILTER_PORT}
+      - ${MODEL_PORT}
+      - ${INTERPRETER_PORT}
+      - ${CLP_PORT}
+    command: ["sleep", "infinity"]
+
+  CAMERA:
+    <<: *default
+    container_name: "${CAMERA_HOSTNAME}"
+    profiles:
+      - service
+      - camera
+    privileged: true
+    command: [  "python", "-u","camera_service.py",
+                # "--service_host", "",
+                "--service_port", "${CAMERA_PORT}",
+                "--output_port", "${FILTER_PORT}",
+                "--output_host", "${FILTER_HOSTNAME}",
+                ]
+    #devices:
+    #  - "/dev/video0:/dev/video0"
+    volumes:
+      - /dev:/dev
+      - ../../services/:/app/
+      - ../../config/extra:/app/config/
+
+
+  FILTER:
+    <<: *default
+    container_name: "${FILTER_HOSTNAME}"
+    profiles:
+      - service
+      - filter
+    command: [  "python", "-u","filter_service.py",
+                "--service_port", "${FILTER_PORT}",
+                "--output_port", "${MODEL_PORT}",
+                "--output_host", "${MODEL_HOSTNAME}",
+    ]
+    volumes:
+      - ../../services/:/app/
+
+
+  GPU:
+    <<: *default
+    container_name: "${MODEL_HOSTNAME}"
+    profiles:
+      - service
+      - gpu
+    image: tensorflow:gpu
+    build: 
+      context: "../../config/docker/"
+      dockerfile: "tensor_opencv.dockerfile"
+      args:
+        version: latest-gpu
+    volumes:
+      - ../../services/:/app/
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+    privileged: true
+    environment:
+      - NVIDIA_VISIBLE_DEVICES=all
+      - CUDA_VISIBLE_DEVICES=0
+    command: [  "python", "-u","prediction_service.py",
+                "--service_port", "${MODEL_PORT}",
+                "--output_port", "${INTERPRETER_PORT}",
+                "--output_host", "${INTERPRETER_HOSTNAME}",
+              ]
+
+
+  INTERPRETER:
+    <<: *default
+    profiles:
+      - service
+      - interpreter
+    container_name: "${INTERPRETER_HOSTNAME}"
+    command: [  "python", "-u","interpreter_service.py",
+                "--service_port", "${INTERPRETER_PORT}",
+                "--output_port", "${CLP_PORT}",
+                "--output_host", "${CLP_HOSTNAME}",
+    ]
+    volumes:
+      - ../../services/:/app/
+  
+  
+  CLP:
+    <<: *default
+    profiles:
+      - service
+      - clp
+    container_name: "${CLP_HOSTNAME}"
+    command: [  "python", "-u","clp_service.py",
+                "--service_port", "${CLP_PORT}",
+                "--output_port", "${CLP_PORT}",
+                "--output_host", "${CLP_HOSTNAME}",
+    ]
+    ports:
+      - 502:502
+    volumes:
+      - ../../services/:/app/
+
+
+  CPU:
+    <<: *default
+    profiles:
+      - test
+      - cpu
+    container_name: "${MODEL_HOSTNAME}"
+    image: tensorflow:cpu 
+    build: 
+      context: "../../config/docker/"
+      dockerfile: "tensor_opencv.dockerfile"
+      args:
+        version: latest
+    expose:
+      - "6000"
+    volumes:
+      - ../../services/:/app/
+    command: ["python", "-u","prediction_service.py"]
+
+
+networks: 
+  bind-network:
+    driver: bridge

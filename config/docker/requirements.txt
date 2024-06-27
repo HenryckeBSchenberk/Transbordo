@@ -1,0 +1,8 @@
+opencv-contrib-python-headless ~= 4.9.0
+codetiming ~= 1.4.0
+pypylon ~= 3.0.1
+pyModbusTCP ~= 0.2.1
+pandas ~= 2.2.2
+seaborn ~= 0.13.2
+matplotlib ~= 3.9.0
+scipy ~= 1.13.1
